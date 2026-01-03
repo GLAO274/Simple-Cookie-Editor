@@ -39,4 +39,4 @@ Click the extension icon to open the cookie editor. You can:
 - All data stays local in your browser
 
 ## Version
-1.0.0
+1.0.1
