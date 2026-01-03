@@ -21,9 +21,21 @@ async function loadCookies() {
   currentDomain = getDomainFromUrl(tab.url);
   document.getElementById('currentDomain').textContent = currentDomain;
 
-  const cookies = await chrome.cookies.getAll({ domain: currentDomain });
-  allCookies = cookies;
-  displayCookies(cookies);
+  // Get all cookies for current domain and parent domains
+  const cookies = await chrome.cookies.getAll({ url: tab.url });
+  
+  // Filter to only show cookies relevant to this domain
+  const domainParts = currentDomain.split('.');
+  const relevantCookies = cookies.filter(cookie => {
+    // Remove leading dot from cookie domain for comparison
+    const cookieDomain = cookie.domain.startsWith('.') ? cookie.domain.substring(1) : cookie.domain;
+    
+    // Check if cookie domain matches or is a parent of current domain
+    return currentDomain.endsWith(cookieDomain) || cookieDomain === currentDomain;
+  });
+
+  allCookies = relevantCookies;
+  displayCookies(relevantCookies);
 }
 
 function displayCookies(cookies) {
