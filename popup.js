@@ -2,6 +2,140 @@ let currentDomain = '';
 let allCookies = [];
 let editingCookie = null;
 
+// Security Constants
+const MAX_IMPORT_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_COOKIES_IMPORT = 1000;
+const MAX_COOKIE_NAME_LENGTH = 256;
+const MAX_COOKIE_VALUE_LENGTH = 4096;
+const MAX_DOMAIN_LENGTH = 253;
+const MAX_PATH_LENGTH = 1024;
+
+// Security Validation Functions
+function isValidDomain(domain) {
+  if (!domain || typeof domain !== 'string') return false;
+  if (domain.length > MAX_DOMAIN_LENGTH) return false;
+  
+  // Remove leading dot if present
+  const cleanDomain = domain.startsWith('.') ? domain.substring(1) : domain;
+  
+  // Basic domain validation regex
+  const domainRegex = /^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)*[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/i;
+  if (!domainRegex.test(cleanDomain)) return false;
+  
+  // Prevent obvious malicious patterns
+  if (cleanDomain.includes('..') || cleanDomain.includes('//')) return false;
+  
+  return true;
+}
+
+function isValidPath(path) {
+  if (!path || typeof path !== 'string') return false;
+  if (path.length > MAX_PATH_LENGTH) return false;
+  if (!path.startsWith('/')) return false;
+  
+  // Prevent path traversal and malicious patterns
+  if (path.includes('..') || path.includes('\\')) return false;
+  
+  return true;
+}
+
+function isValidCookieName(name) {
+  if (!name || typeof name !== 'string') return false;
+  if (name.length > MAX_COOKIE_NAME_LENGTH) return false;
+  
+  // Cookie names cannot contain certain characters
+  const invalidChars = /[\s,;=]/;
+  if (invalidChars.test(name)) return false;
+  
+  return true;
+}
+
+function isValidCookieValue(value) {
+  if (typeof value !== 'string') return false;
+  if (value.length > MAX_COOKIE_VALUE_LENGTH) return false;
+  
+  return true;
+}
+
+function sanitizeErrorMessage(error) {
+  // Generic error messages to prevent information leakage
+  const errorMap = {
+    'network': 'Network error occurred',
+    'permission': 'Permission denied',
+    'invalid': 'Invalid input provided',
+    'timeout': 'Operation timed out',
+    'default': 'An error occurred'
+  };
+  
+  const errorStr = error.toString().toLowerCase();
+  
+  if (errorStr.includes('network') || errorStr.includes('fetch')) {
+    return errorMap.network;
+  }
+  if (errorStr.includes('permission') || errorStr.includes('denied')) {
+    return errorMap.permission;
+  }
+  if (errorStr.includes('invalid') || errorStr.includes('validation')) {
+    return errorMap.invalid;
+  }
+  if (errorStr.includes('timeout')) {
+    return errorMap.timeout;
+  }
+  
+  return errorMap.default;
+}
+
+function validateCookieSchema(cookie) {
+  if (!cookie || typeof cookie !== 'object') {
+    return { valid: false, error: 'Invalid cookie object' };
+  }
+  
+  if (!isValidCookieName(cookie.name)) {
+    return { valid: false, error: 'Invalid cookie name' };
+  }
+  
+  if (!isValidCookieValue(cookie.value || '')) {
+    return { valid: false, error: 'Invalid cookie value' };
+  }
+  
+  if (!isValidDomain(cookie.domain)) {
+    return { valid: false, error: 'Invalid domain' };
+  }
+  
+  if (!isValidPath(cookie.path || '/')) {
+    return { valid: false, error: 'Invalid path' };
+  }
+  
+  // Validate boolean fields
+  if (cookie.secure !== undefined && typeof cookie.secure !== 'boolean') {
+    return { valid: false, error: 'Invalid secure flag' };
+  }
+  
+  if (cookie.httpOnly !== undefined && typeof cookie.httpOnly !== 'boolean') {
+    return { valid: false, error: 'Invalid httpOnly flag' };
+  }
+  
+  // Validate expiration date
+  if (cookie.expirationDate !== undefined) {
+    if (typeof cookie.expirationDate !== 'number' || cookie.expirationDate < 0) {
+      return { valid: false, error: 'Invalid expiration date' };
+    }
+  }
+  
+  return { valid: true };
+}
+
+function isDomainRelated(cookieDomain, currentDomain) {
+  if (!cookieDomain || !currentDomain) return false;
+  
+  const cleanCookieDomain = cookieDomain.startsWith('.') ? cookieDomain.substring(1) : cookieDomain;
+  const cleanCurrentDomain = currentDomain.startsWith('.') ? currentDomain.substring(1) : currentDomain;
+  
+  // Cookie domain must match or be a parent of current domain
+  return cleanCurrentDomain === cleanCookieDomain || 
+         cleanCurrentDomain.endsWith('.' + cleanCookieDomain);
+}
+
 async function getCurrentTab() {
   const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
   return tabs[0];
@@ -157,13 +291,30 @@ async function saveCookie() {
   const secure = document.getElementById('cookieSecure').checked;
   const httpOnly = document.getElementById('cookieHttpOnly').checked;
 
-  if (!name) {
-    alert('Cookie name is required');
+  // Validate all inputs
+  if (!isValidCookieName(name)) {
+    alert('Invalid cookie name. Name cannot contain spaces, commas, semicolons, or equals signs.');
     return;
   }
 
-  if (!domain) {
-    alert('Domain is required');
+  if (!isValidCookieValue(value)) {
+    alert('Cookie value is too long or invalid.');
+    return;
+  }
+
+  if (!isValidDomain(domain)) {
+    alert('Invalid domain format.');
+    return;
+  }
+
+  if (!isValidPath(path)) {
+    alert('Invalid path. Path must start with / and cannot contain .. or \\');
+    return;
+  }
+
+  // Security check: Verify domain is related to current page
+  if (!isDomainRelated(domain, currentDomain)) {
+    alert('Security error: Cannot set cookies for unrelated domains. Cookie domain must match or be a parent of the current domain.');
     return;
   }
 
@@ -180,16 +331,24 @@ async function saveCookie() {
     cookieDetails.expirationDate = Math.floor(Date.now() / 1000) + (expiryDays * 24 * 60 * 60);
   }
 
-  const tab = await getCurrentTab();
-  const protocol = new URL(tab.url).protocol;
-  cookieDetails.url = protocol + '//' + domain + path;
-
   try {
+    const tab = await getCurrentTab();
+    const protocol = new URL(tab.url).protocol;
+    
+    // Additional security: validate constructed URL
+    if (protocol !== 'http:' && protocol !== 'https:') {
+      alert('Invalid protocol. Cookies can only be set on HTTP or HTTPS pages.');
+      return;
+    }
+    
+    cookieDetails.url = protocol + '//' + domain + path;
+
     await chrome.cookies.set(cookieDetails);
     hideModal();
     await loadCookies();
   } catch (error) {
-    alert('Error saving cookie: ' + error.message);
+    console.error('Error saving cookie:', error);
+    alert(sanitizeErrorMessage(error));
   }
 }
 
@@ -201,19 +360,24 @@ function editCookie(name) {
 }
 
 async function deleteCookie(name) {
-  if (!confirm(`Delete cookie "${name}"?`)) {
+  if (!confirm(`Delete cookie "${escapeHtml(name)}"?`)) {
     return;
   }
 
   const cookie = allCookies.find(c => c.name === name);
   if (cookie) {
-    const tab = await getCurrentTab();
-    const protocol = new URL(tab.url).protocol;
-    await chrome.cookies.remove({
-      name: cookie.name,
-      url: protocol + '//' + cookie.domain + cookie.path
-    });
-    await loadCookies();
+    try {
+      const tab = await getCurrentTab();
+      const protocol = new URL(tab.url).protocol;
+      await chrome.cookies.remove({
+        name: cookie.name,
+        url: protocol + '//' + cookie.domain + cookie.path
+      });
+      await loadCookies();
+    } catch (error) {
+      console.error('Error deleting cookie:', error);
+      alert(sanitizeErrorMessage(error));
+    }
   }
 }
 
@@ -222,48 +386,104 @@ async function deleteAllCookies() {
     return;
   }
 
-  const tab = await getCurrentTab();
-  const protocol = new URL(tab.url).protocol;
+  try {
+    const tab = await getCurrentTab();
+    const protocol = new URL(tab.url).protocol;
 
-  for (const cookie of allCookies) {
-    await chrome.cookies.remove({
-      name: cookie.name,
-      url: protocol + '//' + cookie.domain + cookie.path
-    });
+    for (const cookie of allCookies) {
+      await chrome.cookies.remove({
+        name: cookie.name,
+        url: protocol + '//' + cookie.domain + cookie.path
+      });
+    }
+
+    await loadCookies();
+  } catch (error) {
+    console.error('Error deleting cookies:', error);
+    alert(sanitizeErrorMessage(error));
   }
-
-  await loadCookies();
 }
 
 function exportCookies() {
-  const dataStr = JSON.stringify(allCookies, null, 2);
-  const dataBlob = new Blob([dataStr], { type: 'application/json' });
-  const url = URL.createObjectURL(dataBlob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `cookies_${currentDomain}_${Date.now()}.json`;
-  link.click();
-  URL.revokeObjectURL(url);
+  try {
+    const dataStr = JSON.stringify(allCookies, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `cookies_${currentDomain}_${Date.now()}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Error exporting cookies:', error);
+    alert('Failed to export cookies');
+  }
 }
 
 async function importCookies(event) {
   const file = event.target.files[0];
   if (!file) return;
 
+  // Validate file size
+  if (file.size > MAX_IMPORT_FILE_SIZE) {
+    alert(`File too large. Maximum size is ${MAX_IMPORT_FILE_SIZE / 1024 / 1024}MB`);
+    event.target.value = '';
+    return;
+  }
+
+  // Validate file type
+  if (!file.name.endsWith('.json')) {
+    alert('Invalid file type. Please select a JSON file.');
+    event.target.value = '';
+    return;
+  }
+
   try {
     const text = await file.text();
-    const cookies = JSON.parse(text);
+    let cookies;
+    
+    try {
+      cookies = JSON.parse(text);
+    } catch (parseError) {
+      alert('Invalid JSON format');
+      event.target.value = '';
+      return;
+    }
 
     if (!Array.isArray(cookies)) {
-      alert('Invalid cookie file format');
+      alert('Invalid cookie file format. Expected an array of cookies.');
+      event.target.value = '';
+      return;
+    }
+
+    if (cookies.length > MAX_COOKIES_IMPORT) {
+      alert(`Too many cookies. Maximum is ${MAX_COOKIES_IMPORT} cookies per import.`);
+      event.target.value = '';
       return;
     }
 
     const tab = await getCurrentTab();
     const protocol = new URL(tab.url).protocol;
     let imported = 0;
+    let skipped = 0;
+    const errors = [];
 
     for (const cookie of cookies) {
+      // Validate cookie schema
+      const validation = validateCookieSchema(cookie);
+      if (!validation.valid) {
+        skipped++;
+        errors.push(`${cookie.name || 'unknown'}: ${validation.error}`);
+        continue;
+      }
+
+      // Security check: Only import cookies for related domains
+      if (!isDomainRelated(cookie.domain, currentDomain)) {
+        skipped++;
+        errors.push(`${cookie.name}: Domain not related to current page`);
+        continue;
+      }
+
       try {
         const cookieDetails = {
           name: cookie.name,
@@ -283,13 +503,24 @@ async function importCookies(event) {
         imported++;
       } catch (error) {
         console.error('Error importing cookie:', cookie.name, error);
+        skipped++;
+        errors.push(`${cookie.name}: Failed to import`);
       }
     }
 
-    alert(`Successfully imported ${imported} out of ${cookies.length} cookies`);
+    let message = `Successfully imported ${imported} out of ${cookies.length} cookies`;
+    if (skipped > 0) {
+      message += `\n${skipped} cookies were skipped due to validation errors.`;
+      if (errors.length <= 5) {
+        message += `\n\nErrors:\n${errors.join('\n')}`;
+      }
+    }
+    
+    alert(message);
     await loadCookies();
   } catch (error) {
-    alert('Error importing cookies: ' + error.message);
+    console.error('Error importing cookies:', error);
+    alert(sanitizeErrorMessage(error));
   }
 
   event.target.value = '';
