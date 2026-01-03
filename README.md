@@ -1,6 +1,6 @@
 # Simple Cookie Editor
 
-A browser extension to view, edit, and manage cookies.
+A browser extension to view, edit, and manage cookies with security features.
 
 ## Features
 - View all cookies for any website
@@ -8,6 +8,7 @@ A browser extension to view, edit, and manage cookies.
 - Copy cookie values
 - Export/import cookies as JSON
 - Search and filter cookies
+- Domain validation and security checks
 
 ## Installation
 
@@ -37,6 +38,9 @@ Click the extension icon to open the cookie editor. You can:
 - Only works on regular websites (not chrome:// or about:// pages)
 - Secure cookies require HTTPS
 - All data stays local in your browser
+- Domain validation prevents setting cookies for unrelated domains
+- Import files limited to 5MB and 1000 cookies
+- Input validation on all cookie fields
 
 ## Version
-1.0.2
+1.1.0
