@@ -1,6 +1,6 @@
 # Simple Cookie Editor
 
-A browser extension to view, edit, and manage cookies with security features.
+A browser extension created by Claude to view, edit, and manage cookies with security features.
 
 ## Features
 - View all cookies for any website
