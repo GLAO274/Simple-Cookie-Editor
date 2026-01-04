@@ -33,11 +33,17 @@ Click the extension icon to open the cookie editor. You can:
 - **View**: See all cookies for the current site
 - **Copy**: Click "Copy" to copy a cookie value
 - **Add**: Click "Add Cookie" to create a new cookie
-- **Edit**: Click "Edit" to modify an existing cookie
+- **Edit**: Click "Edit" to modify an existing cookie (disabled for protected cookies)
 - **Delete**: Remove individual cookies or delete all
 - **Export/Import**: Backup and restore cookies as JSON files
 - **Search**: Filter cookies by name or value
 - **Collapse/Expand**: Click cookies to expand or use the toggle link
+
+**Note**: Some cookies are marked as "PROTECTED" and cannot be edited. These include:
+- HttpOnly cookies (security flag prevents JavaScript access)
+- Cookies with `__Secure-` or `__Host-` prefixes (special browser security)
+- Authentication cookies (APISID, SID, HSID, etc.)
+- These cookies can still be viewed, copied, and deleted
 
 ## Security Notes
 - Compatible with Chrome and Firefox 109+
@@ -49,9 +55,10 @@ Click the extension icon to open the cookie editor. You can:
 - Input validation on all cookie fields
 
 ## Version
-1.2.3
+1.2.4
 
 ## Changelog
+- **1.2.4**: Protected cookies (HttpOnly, __Secure-, __Host-, auth cookies) now have disabled Edit button with tooltip
 - **1.2.3**: Added Firefox compatibility (requires Firefox 109+)
 - **1.2.2**: Security features and validation
 - Previous versions: Basic functionality
