@@ -224,6 +224,8 @@
       font-family: 'Courier New', monospace;
       font-size: 11px;
       color: #d0d0d0;
+      max-height: 150px;
+      overflow-y: auto;
     }
 
     .cookie-actions {
@@ -348,6 +350,24 @@
     }
 
     .scrollbar-custom::-webkit-scrollbar-thumb:hover {
+      background: #5d5d5d;
+    }
+
+    .cookie-value::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .cookie-value::-webkit-scrollbar-track {
+      background: #0a0a0a;
+      border-radius: 3px;
+    }
+
+    .cookie-value::-webkit-scrollbar-thumb {
+      background: #4d4d4d;
+      border-radius: 3px;
+    }
+
+    .cookie-value::-webkit-scrollbar-thumb:hover {
       background: #5d5d5d;
     }
 
