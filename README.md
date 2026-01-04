@@ -44,4 +44,4 @@ Click the extension icon to open the cookie editor. You can:
 - Input validation on all cookie fields
 
 ## Version
-1.2.0
+1.2.1
