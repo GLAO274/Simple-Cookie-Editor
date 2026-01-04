@@ -185,26 +185,30 @@ async function loadCookies() {
 
 function displayCookies(cookies) {
   const cookieList = document.getElementById('cookieList');
-  const searchBox = document.getElementById('searchBox');
   
   if (cookies.length === 0) {
     cookieList.innerHTML = '<div class="empty-state"><p>No cookies found for this domain</p></div>';
-    searchBox.style.display = 'none';
     return;
   }
 
-  // Show search box when cookies exist
-  searchBox.style.display = 'block';
-
   cookieList.innerHTML = '';
   
-  // Add toggle all link at the top
-  const toggleLink = document.createElement('div');
-  toggleLink.className = 'toggle-all-link';
-  toggleLink.id = 'toggleAllBtn';
-  toggleLink.innerHTML = `<span class="toggle-symbol" id="toggleSymbol">${allCollapsed ? '+' : '-'}</span> ${allCollapsed ? 'Expand All' : 'Collapse All'}`;
-  toggleLink.addEventListener('click', toggleAllCookies);
-  cookieList.appendChild(toggleLink);
+  // Add header with search box and toggle link
+  const headerDiv = document.createElement('div');
+  headerDiv.className = 'cookie-list-header';
+  headerDiv.innerHTML = `
+    <input type="text" class="search-box" id="searchBox" placeholder="Search cookies...">
+    <div class="toggle-all-link" id="toggleAllBtn">
+      <span class="toggle-symbol" id="toggleSymbol">${allCollapsed ? '+' : '-'}</span> ${allCollapsed ? 'Expand All' : 'Collapse All'}
+    </div>
+  `;
+  cookieList.appendChild(headerDiv);
+  
+  // Add event listeners to the dynamically created elements
+  const searchBox = headerDiv.querySelector('#searchBox');
+  const toggleBtn = headerDiv.querySelector('#toggleAllBtn');
+  searchBox.addEventListener('input', (e) => searchCookies(e.target.value));
+  toggleBtn.addEventListener('click', toggleAllCookies);
   
   cookies.forEach(cookie => {
     const cookieId = cookie.name + cookie.domain + cookie.path;
@@ -590,10 +594,6 @@ async function importCookies(event) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('searchBox').addEventListener('input', (e) => {
-    searchCookies(e.target.value);
-  });
-
   document.getElementById('addBtn').addEventListener('click', () => {
     showModal('Add Cookie');
   });
