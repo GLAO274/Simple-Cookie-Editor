@@ -3,7 +3,7 @@
 A browser extension created by Claude to view, edit, and manage cookies with security features.
 
 ## Features
-- View all cookies for any website
+- View all cookies for any website (collapsible interface)
 - Add, edit, and delete cookies
 - Copy cookie values
 - Export/import cookies as JSON
@@ -33,6 +33,7 @@ Click the extension icon to open the cookie editor. You can:
 - **Delete**: Remove individual cookies or delete all
 - **Export/Import**: Backup and restore cookies as JSON files
 - **Search**: Filter cookies by name or value
+- **Collapse/Expand**: Click cookies to expand or use the toggle link
 
 ## Security Notes
 - Only works on regular websites (not chrome:// or about:// pages)
@@ -43,4 +44,4 @@ Click the extension icon to open the cookie editor. You can:
 - Input validation on all cookie fields
 
 ## Version
-1.1.0
+1.2.0
