@@ -1,3 +1,6 @@
+// Browser API compatibility layer for Chrome and Firefox
+const browserAPI = typeof browser !== 'undefined' ? browser : chrome;
+
 let currentDomain = '';
 let allCookies = [];
 let editingCookie = null;
@@ -139,7 +142,7 @@ function isDomainRelated(cookieDomain, currentDomain) {
 }
 
 async function getCurrentTab() {
-  const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+  const tabs = await browserAPI.tabs.query({ active: true, currentWindow: true });
   return tabs[0];
 }
 
@@ -158,7 +161,7 @@ async function loadCookies() {
   document.getElementById('currentDomain').textContent = currentDomain;
 
   // Get all cookies for current domain and parent domains
-  const cookies = await chrome.cookies.getAll({ url: tab.url });
+  const cookies = await browserAPI.cookies.getAll({ url: tab.url });
   
   // Filter to only show cookies relevant to this domain
   const domainParts = currentDomain.split('.');
@@ -417,7 +420,7 @@ async function saveCookie() {
     
     cookieDetails.url = protocol + '//' + domain + path;
 
-    await chrome.cookies.set(cookieDetails);
+    await browserAPI.cookies.set(cookieDetails);
     hideModal();
     await loadCookies();
   } catch (error) {
@@ -443,7 +446,7 @@ async function deleteCookie(name) {
     try {
       const tab = await getCurrentTab();
       const protocol = new URL(tab.url).protocol;
-      await chrome.cookies.remove({
+      await browserAPI.cookies.remove({
         name: cookie.name,
         url: protocol + '//' + cookie.domain + cookie.path
       });
@@ -465,7 +468,7 @@ async function deleteAllCookies() {
     const protocol = new URL(tab.url).protocol;
 
     for (const cookie of allCookies) {
-      await chrome.cookies.remove({
+      await browserAPI.cookies.remove({
         name: cookie.name,
         url: protocol + '//' + cookie.domain + cookie.path
       });
@@ -573,7 +576,7 @@ async function importCookies(event) {
           cookieDetails.expirationDate = cookie.expirationDate;
         }
 
-        await chrome.cookies.set(cookieDetails);
+        await browserAPI.cookies.set(cookieDetails);
         imported++;
       } catch (error) {
         console.error('Error importing cookie:', cookie.name, error);
