@@ -1,6 +1,8 @@
 let currentDomain = '';
 let allCookies = [];
 let editingCookie = null;
+let collapsedCookies = new Set();
+let allCollapsed = true;
 
 // Security Constants
 const MAX_IMPORT_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -169,20 +171,45 @@ async function loadCookies() {
   });
 
   allCookies = relevantCookies;
+  
+  // Initialize all cookies as collapsed
+  collapsedCookies.clear();
+  relevantCookies.forEach(cookie => {
+    const cookieId = cookie.name + cookie.domain + cookie.path;
+    collapsedCookies.add(cookieId);
+  });
+  allCollapsed = true;
+  
   displayCookies(relevantCookies);
 }
 
 function displayCookies(cookies) {
   const cookieList = document.getElementById('cookieList');
+  const searchBox = document.getElementById('searchBox');
   
   if (cookies.length === 0) {
     cookieList.innerHTML = '<div class="empty-state"><p>No cookies found for this domain</p></div>';
+    searchBox.style.display = 'none';
     return;
   }
 
+  // Show search box when cookies exist
+  searchBox.style.display = 'block';
+
   cookieList.innerHTML = '';
   
+  // Add toggle all link at the top
+  const toggleLink = document.createElement('div');
+  toggleLink.className = 'toggle-all-link';
+  toggleLink.id = 'toggleAllBtn';
+  toggleLink.innerHTML = `<span class="toggle-symbol" id="toggleSymbol">${allCollapsed ? '+' : '-'}</span> ${allCollapsed ? 'Expand All' : 'Collapse All'}`;
+  toggleLink.addEventListener('click', toggleAllCookies);
+  cookieList.appendChild(toggleLink);
+  
   cookies.forEach(cookie => {
+    const cookieId = cookie.name + cookie.domain + cookie.path;
+    const isCollapsed = collapsedCookies.has(cookieId);
+    
     const expiresText = cookie.expirationDate 
       ? new Date(cookie.expirationDate * 1000).toLocaleString()
       : 'Session';
@@ -193,22 +220,31 @@ function displayCookies(cookies) {
     const cookieItem = document.createElement('div');
     cookieItem.className = 'cookie-item';
     cookieItem.innerHTML = `
-      <div class="cookie-name">${escapeHtml(cookie.name)}${secureBadge}${httpOnlyBadge}</div>
-      <div class="cookie-value">${escapeHtml(cookie.value)}</div>
-      <div class="cookie-details">Domain: ${escapeHtml(cookie.domain)}</div>
-      <div class="cookie-details">Path: ${escapeHtml(cookie.path)}</div>
-      <div class="cookie-details">Expires: ${expiresText}</div>
-      <div class="cookie-actions">
-        <button class="btn-success copy-btn">Copy</button>
-        <button class="btn-primary edit-btn">Edit</button>
-        <button class="btn-danger delete-btn">Delete</button>
+      <div class="cookie-header">
+        <div class="chevron ${isCollapsed ? '' : 'expanded'}"></div>
+        <div class="cookie-name">${escapeHtml(cookie.name)}${secureBadge}${httpOnlyBadge}</div>
+      </div>
+      <div class="cookie-content ${isCollapsed ? '' : 'expanded'}">
+        <div class="cookie-value">${escapeHtml(cookie.value)}</div>
+        <div class="cookie-details">Domain: ${escapeHtml(cookie.domain)}</div>
+        <div class="cookie-details">Path: ${escapeHtml(cookie.path)}</div>
+        <div class="cookie-details">Expires: ${expiresText}</div>
+        <div class="cookie-actions">
+          <button class="btn-success copy-btn">Copy</button>
+          <button class="btn-primary edit-btn">Edit</button>
+          <button class="btn-danger delete-btn">Delete</button>
+        </div>
       </div>
     `;
 
+    const header = cookieItem.querySelector('.cookie-header');
+    const chevron = cookieItem.querySelector('.chevron');
+    const content = cookieItem.querySelector('.cookie-content');
     const copyBtn = cookieItem.querySelector('.copy-btn');
     const editBtn = cookieItem.querySelector('.edit-btn');
     const deleteBtn = cookieItem.querySelector('.delete-btn');
     
+    header.addEventListener('click', () => toggleCookie(cookieId, chevron, content));
     copyBtn.addEventListener('click', () => copyCookieValue(cookie.value, copyBtn));
     editBtn.addEventListener('click', () => editCookie(cookie.name));
     deleteBtn.addEventListener('click', () => deleteCookie(cookie.name));
@@ -221,6 +257,33 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
+}
+
+function toggleCookie(cookieId, chevron, content) {
+  if (collapsedCookies.has(cookieId)) {
+    collapsedCookies.delete(cookieId);
+    chevron.classList.add('expanded');
+    content.classList.add('expanded');
+  } else {
+    collapsedCookies.add(cookieId);
+    chevron.classList.remove('expanded');
+    content.classList.remove('expanded');
+  }
+}
+
+function toggleAllCookies() {
+  if (allCollapsed) {
+    collapsedCookies.clear();
+    allCollapsed = false;
+  } else {
+    allCookies.forEach(cookie => {
+      const cookieId = cookie.name + cookie.domain + cookie.path;
+      collapsedCookies.add(cookieId);
+    });
+    allCollapsed = true;
+  }
+  
+  displayCookies(allCookies);
 }
 
 async function copyCookieValue(value, button) {
