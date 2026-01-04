@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Simple Cookie Editor",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "View, edit, add, delete, and manage cookies for the current tab",
   "permissions": [
     "cookies",
