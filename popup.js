@@ -141,6 +141,31 @@ function isDomainRelated(cookieDomain, currentDomain) {
          cleanCurrentDomain.endsWith('.' + cleanCookieDomain);
 }
 
+function isProtectedCookie(cookie) {
+  // Check if cookie has special prefixes that indicate it's protected
+  if (cookie.name.startsWith('__Secure-') || cookie.name.startsWith('__Host-')) {
+    return true;
+  }
+  
+  // Common protected Google/authentication cookies
+  const protectedNames = [
+    'APISID', 'SAPISID', 'HSID', 'SSID', 'SID', 
+    'SIDCC', 'NID', 'CONSENT', '1P_JAR', 
+    'SEARCH_SAMESITE', 'AEC'
+  ];
+  
+  if (protectedNames.includes(cookie.name)) {
+    return true;
+  }
+  
+  // HttpOnly cookies often can't be modified via extension API
+  if (cookie.httpOnly) {
+    return true;
+  }
+  
+  return false;
+}
+
 async function getCurrentTab() {
   const tabs = await browserAPI.tabs.query({ active: true, currentWindow: true });
   return tabs[0];
@@ -210,6 +235,7 @@ function displayCookies(cookies) {
   cookies.forEach(cookie => {
     const cookieId = cookie.name + cookie.domain + cookie.path;
     const isCollapsed = collapsedCookies.has(cookieId);
+    const isProtected = isProtectedCookie(cookie);
     
     const expiresText = cookie.expirationDate 
       ? new Date(cookie.expirationDate * 1000).toLocaleString()
@@ -217,13 +243,14 @@ function displayCookies(cookies) {
     
     const secureBadge = cookie.secure ? '<span class="badge badge-secure">SECURE</span>' : '';
     const httpOnlyBadge = cookie.httpOnly ? '<span class="badge badge-httponly">HTTP-ONLY</span>' : '';
+    const protectedBadge = isProtected ? '<span class="badge badge-httponly">PROTECTED</span>' : '';
 
     const cookieItem = document.createElement('div');
     cookieItem.className = 'cookie-item';
     cookieItem.innerHTML = `
       <div class="cookie-header">
         <div class="chevron ${isCollapsed ? '' : 'expanded'}"></div>
-        <div class="cookie-name">${escapeHtml(cookie.name)}${secureBadge}${httpOnlyBadge}</div>
+        <div class="cookie-name">${escapeHtml(cookie.name)}${secureBadge}${httpOnlyBadge}${protectedBadge}</div>
       </div>
       <div class="cookie-content ${isCollapsed ? '' : 'expanded'}">
         <div class="cookie-value">${escapeHtml(cookie.value)}</div>
@@ -232,7 +259,7 @@ function displayCookies(cookies) {
         <div class="cookie-details">Expires: ${expiresText}</div>
         <div class="cookie-actions">
           <button class="btn-success copy-btn">Copy</button>
-          <button class="btn-primary edit-btn">Edit</button>
+          <button class="btn-primary edit-btn" ${isProtected ? 'disabled style="opacity: 0.5; cursor: not-allowed;" title="This cookie is protected and cannot be edited"' : ''}>Edit</button>
           <button class="btn-danger delete-btn">Delete</button>
         </div>
       </div>
@@ -247,7 +274,11 @@ function displayCookies(cookies) {
     
     header.addEventListener('click', () => toggleCookie(cookieId, chevron, content));
     copyBtn.addEventListener('click', () => copyCookieValue(cookie.value, copyBtn));
-    editBtn.addEventListener('click', () => editCookie(cookie.name));
+    
+    if (!isProtected) {
+      editBtn.addEventListener('click', () => editCookie(cookie.name));
+    }
+    
     deleteBtn.addEventListener('click', () => deleteCookie(cookie.name));
 
     cookieList.appendChild(cookieItem);
@@ -420,12 +451,18 @@ async function saveCookie() {
     
     cookieDetails.url = protocol + '//' + domain + path;
 
-    await browserAPI.cookies.set(cookieDetails);
+    const result = await browserAPI.cookies.set(cookieDetails);
+    
+    if (!result) {
+      throw new Error('Failed to set cookie. This may be a browser-protected cookie or domain mismatch.');
+    }
+    
     hideModal();
     await loadCookies();
   } catch (error) {
     console.error('Error saving cookie:', error);
-    alert(sanitizeErrorMessage(error));
+    const errorMsg = error.message || sanitizeErrorMessage(error);
+    alert('Error saving cookie: ' + errorMsg + '\n\nNote: Some cookies (like APISID, SID, HSID) are set by websites and may be protected from manual editing.');
   }
 }
 
