@@ -21,9 +21,13 @@ A browser extension created by Claude to view, edit, and manage cookies with sec
 4. Select the `simple-cookie-editor` folder
 
 ### Firefox
+**Note:** Requires Firefox 109 or newer for Manifest V3 support.
+
 1. Open `about:debugging#/runtime/this-firefox`
 2. Click "Load Temporary Add-on..."
 3. Select the `manifest.json` file from the folder
+
+For permanent installation in Firefox, the extension needs to be signed by Mozilla.
 
 ## How to Use
 
@@ -38,6 +42,7 @@ Click the extension icon to open the cookie editor. You can:
 - **Collapse/Expand**: Click cookies to expand or use the toggle link
 
 ## Security Notes
+- Compatible with Chrome and Firefox 109+
 - Only works on regular websites (not chrome:// or about:// pages)
 - Secure cookies require HTTPS
 - All data stays local in your browser
@@ -46,4 +51,4 @@ Click the extension icon to open the cookie editor. You can:
 - Input validation on all cookie fields
 
 ## Version
-1.2.2
+1.2.3
