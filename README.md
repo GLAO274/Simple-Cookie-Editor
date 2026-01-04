@@ -27,8 +27,6 @@ A browser extension created by Claude to view, edit, and manage cookies with sec
 2. Click "Load Temporary Add-on..."
 3. Select the `manifest.json` file from the folder
 
-For permanent installation in Firefox, the extension needs to be signed by Mozilla.
-
 ## How to Use
 
 Click the extension icon to open the cookie editor. You can:
@@ -52,3 +50,8 @@ Click the extension icon to open the cookie editor. You can:
 
 ## Version
 1.2.3
+
+## Changelog
+- **1.2.3**: Added Firefox compatibility (requires Firefox 109+)
+- **1.2.2**: Security features and validation
+- Previous versions: Basic functionality
