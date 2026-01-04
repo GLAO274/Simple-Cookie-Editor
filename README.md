@@ -2,6 +2,8 @@
 
 A browser extension created by Claude to view, edit, and manage cookies with security features.
 
+![Showcase](https://github.com/GLAO274/Simple-Cookie-Editor/blob/main/showcase.jpg?raw=true)
+
 ## Features
 - View all cookies for any website (collapsible interface)
 - Add, edit, and delete cookies
@@ -44,4 +46,4 @@ Click the extension icon to open the cookie editor. You can:
 - Input validation on all cookie fields
 
 ## Version
-1.2.1
+1.2.2
