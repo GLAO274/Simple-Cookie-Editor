@@ -18,6 +18,7 @@
       font-size: 13px;
       color: #e0e0e0;
       background: #1a1a1a;
+      overflow: hidden;
     }
 
     .header {
@@ -45,16 +46,39 @@
       border-bottom: 1px solid #3d3d3d;
     }
 
+    .cookie-list-header {
+      padding: 8px 10px;
+      margin-bottom: 8px;
+      background: #2d2d2d;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .search-box {
+      flex: 1;
+      padding: 6px 10px;
+      border: 1px solid #4d4d4d;
+      border-radius: 4px;
+      font-size: 12px;
+      background: #1a1a1a;
+      color: #e0e0e0;
+    }
+
+    .search-box:focus {
+      outline: none;
+      border-color: #5a9fd4;
+    }
+
     .toggle-all-link {
-      display: block;
       font-size: 12px;
       color: #5a9fd4;
       cursor: pointer;
-      padding: 8px 10px;
-      margin-bottom: 8px;
       user-select: none;
-      background: #2d2d2d;
-      border-radius: 4px;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
 
     .toggle-all-link:hover {
@@ -376,7 +400,6 @@
       <button class="btn-success" id="importBtn">Import</button>
       <button class="btn-danger" id="deleteAllBtn">Delete All</button>
     </div>
-    <input type="text" class="search-box" id="searchBox" placeholder="Search cookies..." style="display: none;">
   </div>
 
   <div class="cookie-list scrollbar-custom" id="cookieList">
