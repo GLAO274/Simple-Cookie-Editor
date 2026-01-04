@@ -185,30 +185,24 @@ async function loadCookies() {
 
 function displayCookies(cookies) {
   const cookieList = document.getElementById('cookieList');
+  const cookieListHeader = document.getElementById('cookieListHeader');
+  const toggleSymbol = document.getElementById('toggleSymbol');
+  const toggleBtn = document.getElementById('toggleAllBtn');
   
   if (cookies.length === 0) {
     cookieList.innerHTML = '<div class="empty-state"><p>No cookies found for this domain</p></div>';
+    cookieListHeader.style.display = 'none';
     return;
   }
 
+  // Show header when cookies exist
+  cookieListHeader.style.display = 'block';
+  
+  // Update toggle button text
+  toggleSymbol.textContent = allCollapsed ? '+' : '-';
+  toggleBtn.innerHTML = `<span class="toggle-symbol" id="toggleSymbol">${allCollapsed ? '+' : '-'}</span> ${allCollapsed ? 'Expand All' : 'Collapse All'}`;
+
   cookieList.innerHTML = '';
-  
-  // Add header with search box and toggle link
-  const headerDiv = document.createElement('div');
-  headerDiv.className = 'cookie-list-header';
-  headerDiv.innerHTML = `
-    <input type="text" class="search-box" id="searchBox" placeholder="Search cookies...">
-    <div class="toggle-all-link" id="toggleAllBtn">
-      <span class="toggle-symbol" id="toggleSymbol">${allCollapsed ? '+' : '-'}</span> ${allCollapsed ? 'Expand All' : 'Collapse All'}
-    </div>
-  `;
-  cookieList.appendChild(headerDiv);
-  
-  // Add event listeners to the dynamically created elements
-  const searchBox = headerDiv.querySelector('#searchBox');
-  const toggleBtn = headerDiv.querySelector('#toggleAllBtn');
-  searchBox.addEventListener('input', (e) => searchCookies(e.target.value));
-  toggleBtn.addEventListener('click', toggleAllCookies);
   
   cookies.forEach(cookie => {
     const cookieId = cookie.name + cookie.domain + cookie.path;
@@ -305,11 +299,24 @@ async function copyCookieValue(value, button) {
 }
 
 function searchCookies(query) {
-  const filtered = allCookies.filter(cookie => 
-    cookie.name.toLowerCase().includes(query.toLowerCase()) ||
-    cookie.value.toLowerCase().includes(query.toLowerCase())
-  );
-  displayCookies(filtered);
+  const cookieItems = document.querySelectorAll('.cookie-item');
+  const lowerQuery = query.toLowerCase();
+  
+  cookieItems.forEach(item => {
+    const nameEl = item.querySelector('.cookie-name');
+    const valueEl = item.querySelector('.cookie-value');
+    
+    if (nameEl && valueEl) {
+      const name = nameEl.textContent.toLowerCase();
+      const value = valueEl.textContent.toLowerCase();
+      
+      if (name.includes(lowerQuery) || value.includes(lowerQuery)) {
+        item.style.display = '';
+      } else {
+        item.style.display = 'none';
+      }
+    }
+  });
 }
 
 function showModal(title, cookie = null) {
@@ -594,6 +601,12 @@ async function importCookies(event) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('searchBox').addEventListener('input', (e) => {
+    searchCookies(e.target.value);
+  });
+
+  document.getElementById('toggleAllBtn').addEventListener('click', toggleAllCookies);
+
   document.getElementById('addBtn').addEventListener('click', () => {
     showModal('Add Cookie');
   });
