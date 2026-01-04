@@ -55,9 +55,10 @@ Click the extension icon to open the cookie editor. You can:
 - Input validation on all cookie fields
 
 ## Version
-1.2.4
+1.2.5
 
 ## Changelog
+- **1.2.5**: Added scrollbar to cookie value display
 - **1.2.4**: Protected cookies (HttpOnly, __Secure-, __Host-, auth cookies) now have disabled Edit button with tooltip
 - **1.2.3**: Added Firefox compatibility (requires Firefox 109+)
 - **1.2.2**: Security features and validation
